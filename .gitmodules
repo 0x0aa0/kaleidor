@@ -7,3 +7,6 @@
 [submodule "lib/VRGDAs"]
 	path = lib/VRGDAs
 	url = https://github.com/transmissions11/VRGDAs
+[submodule "lib/clones-with-immutable-args"]
+	path = lib/clones-with-immutable-args
+	url = https://github.com/wighawag/clones-with-immutable-args
