@@ -14,10 +14,7 @@ contract ParticleTest is Test{
         particle = new Particle(
             address(0),
             address(0),
-            block.timestamp,
-            1e18,
-            0.5e18,
-            1e18
+            block.timestamp
         );
     }
  
