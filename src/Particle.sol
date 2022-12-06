@@ -6,39 +6,36 @@ import {SVGUtil} from "./utils/SVGUtil.sol";
 import {LinearVRGDA} from "VRGDAs/LinearVRGDA.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
+import {Kaleidor} from "./Kaleidor.sol";
 
 contract Particle is ERC721, SVGUtil, LinearVRGDA {
 
-    address public immutable treasury;
+    address public immutable kaleidor;
+    address public immutable feeReceiver;
     uint256 public immutable startTime;
-
-    address public creator;
-    address public feeReceiver;
+    
     uint256 public totalSold;
 
     mapping(uint256 => address) public discoverer;
     mapping(uint256 => string) public signals;
+    mapping(address => bool) public locked;
 
     constructor(
-        address _treasury,
+        address _kaleidor,
         address _feeReceiver,
-        uint256 _startTime,
-        int256 _targetPrice,
-        int256 _priceDecayPercent,
-        int256 _perTimeUnit
+        uint256 _startTime
     ) 
         ERC721(
             "KALEIDOR PARTICLE", 
             "*"
         ) 
         LinearVRGDA(
-            _targetPrice,
-            _priceDecayPercent,
-            _perTimeUnit
+            1e18,
+            0.5e18,
+            1e18
         ) 
     {
-        creator = msg.sender;
-        treasury = _treasury;
+        kaleidor = _kaleidor;
         feeReceiver = _feeReceiver;
         startTime = _startTime;
     }
@@ -67,7 +64,7 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
         uint256 contribution = price - fee;
         SafeTransferLib.safeTransferETH(msg.sender, refund);
         SafeTransferLib.safeTransferETH(feeReceiver, fee);
-        SafeTransferLib.safeTransferETH(treasury, contribution);
+        SafeTransferLib.safeTransferETH(kaleidor, contribution);
     }
 
     function tokenURI(uint256 id) public view override returns(string memory){
@@ -81,8 +78,36 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
         image = _image(seed);
     }
 
-    function updateFeeReceiver(address _feeReceiver) external {
-        require(msg.sender == creator);
-        feeReceiver = _feeReceiver;
+    function lock(address _user, bool _state) external {
+        require(msg.sender == kaleidor || msg.sender == Kaleidor(kaleidor).currentEvent());
+        locked[_user] = _state;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public override {
+        require(!locked[from]);
+        super.transferFrom(from, to, id);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public override {
+        require(!locked[from]);
+        super.safeTransferFrom(from, to, id);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        bytes calldata data
+    ) public override {
+        require(!locked[from]);
+        super.safeTransferFrom(from, to, id, data);
     }
 }
