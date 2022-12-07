@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 import {Event} from "./Event.sol";
 import {Particle} from "./Particle.sol";
+import {IKaleidor} from "./interfaces/IKaleidor.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ClonesWithImmutableArgs} from "clones-with-immutable-args/ClonesWithImmutableArgs.sol";
 
@@ -12,11 +13,11 @@ struct Proposal{
     uint256 amount;
 }
 
-contract Kaleidor {
+contract Kaleidor is IKaleidor{
     using ClonesWithImmutableArgs for address;
 
-    Particle immutable particle;
-    address immutable eventImplementation;
+    Particle public immutable particle;
+    address public immutable eventImplementation;
 
     bytes32 public topProposal;
     uint256 public nextEvent;
@@ -39,8 +40,10 @@ contract Kaleidor {
         nextEvent = _startTime + 30 days;
     }
 
-    function create(Proposal memory _proposal) external {
-        bytes32 _proposalHash = keccak256(abi.encode(_proposal));
+    receive() external payable {}
+
+    function create(Proposal memory _proposal) external returns(bytes32 _proposalHash) {
+        _proposalHash = keccak256(abi.encode(_proposal, msg.sender));
         proposals[_proposalHash] = _proposal;
         _updateVotes(_proposalHash);
     }
@@ -60,13 +63,13 @@ contract Kaleidor {
         particle.lock(msg.sender, false);
     }
 
-    function execute() external {
+    function execute() external returns (address newEvent) {
         require(block.timestamp > nextEvent);
 
         uint256 amount = proposals[topProposal].amount;
 
         nextEvent = block.timestamp + 30 days;
-        address payable newEvent = eventImplementation.clone(abi.encode(nextEvent));
+        newEvent = eventImplementation.clone(abi.encode(nextEvent));
 
         proposalVotes[topProposal] = 0;
         topProposal = bytes32(0);
@@ -77,7 +80,7 @@ contract Kaleidor {
 
     function _updateVotes(bytes32 _proposalHash) internal {
         uint256 balance = particle.balanceOf(msg.sender);
-        require(balance > 0);
+        require(balance > 0, "NO TOKENS");
 
         bytes32 prevVote = userVote[msg.sender];
         if (prevVote != bytes32(0) && proposalVotes[prevVote] > 0){

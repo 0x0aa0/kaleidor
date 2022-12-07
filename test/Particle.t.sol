@@ -18,7 +18,7 @@ contract ParticleTest is Test{
         );
     }
  
-    function testTenImages() public view {
+    function xtestTenImages() public view {
         uint256 start = 1000;
         for(uint256 i = start; i < start + 10; i++){
             console2.log("<img src='", particle.getImage(i.toString()), "'></img>");

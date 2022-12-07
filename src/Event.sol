@@ -29,6 +29,8 @@ contract Event is Clone{
     
     receive() external payable {}
 
+    fallback() external payable {}
+
     constructor(Particle _particle){
         particle = _particle;
         kaleidor = msg.sender;

@@ -6,7 +6,7 @@ import {SVGUtil} from "./utils/SVGUtil.sol";
 import {LinearVRGDA} from "VRGDAs/LinearVRGDA.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
-import {Kaleidor} from "./Kaleidor.sol";
+import {IKaleidor, Kaleidor} from "./Kaleidor.sol";
 
 contract Particle is ERC721, SVGUtil, LinearVRGDA {
 
@@ -79,7 +79,7 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
     }
 
     function lock(address _user, bool _state) external {
-        require(msg.sender == kaleidor || msg.sender == Kaleidor(kaleidor).currentEvent());
+        require(msg.sender == kaleidor || msg.sender == IKaleidor(kaleidor).currentEvent());
         locked[_user] = _state;
     }
 
