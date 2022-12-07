@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {Particle} from "../Particle.sol";
-
 struct Proposal{
     string title;
     string description;
@@ -14,7 +12,7 @@ interface IKaleidor {
     error TimeNotElapsed();
     error NoTokens();
 
-    function particle() external returns(Particle);
+    function particle() external returns(address);
 
     function eventImplementation() external returns(address);
 

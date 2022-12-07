@@ -19,7 +19,7 @@ contract KaleidorTest is Test{
 
     function setUp() public {
         kaleidor = new Kaleidor(feeReceiver, block.timestamp);
-        particle = kaleidor.particle();
+        particle = Particle(kaleidor.particle());
 
         vm.deal(alice, 100 ether);
         vm.deal(bob, 100 ether);

@@ -2,13 +2,13 @@
 pragma solidity 0.8.15;
 
 import {Clone} from "clones-with-immutable-args/Clone.sol";
-import {Particle} from "./Particle.sol";
+import {IParticle} from "./interfaces/IParticle.sol";
 import {Proposal} from "./Kaleidor.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {IEvent, Solution} from "./interfaces/IEvent.sol";
 
 contract Event is IEvent, Clone{
-    Particle public immutable particle;
+    address public immutable particle;
     address public immutable kaleidor;
 
     uint256 public totalVotes;
@@ -27,7 +27,7 @@ contract Event is IEvent, Clone{
 
     fallback() external payable {}
 
-    constructor(Particle _particle){
+    constructor(address _particle){
         particle = _particle;
         kaleidor = msg.sender;
     }
@@ -40,7 +40,7 @@ contract Event is IEvent, Clone{
     function vote(bytes32 _solutionHash) external validTime {
         require(_solutionHash != bytes32(0));
 
-        uint256 balance = particle.balanceOf(msg.sender);
+        uint256 balance = IParticle(particle).balance(msg.sender);
         if(balance == 0) revert NoTokens();
 
         bytes32 prevVote = userVote[msg.sender];
@@ -57,7 +57,7 @@ contract Event is IEvent, Clone{
 
     function unvote(address _user) external validTime {
         if(_user != msg.sender){
-            require(msg.sender == address(particle));
+            require(msg.sender == particle);
         }
         
         bytes32 prevVote = userVote[_user];

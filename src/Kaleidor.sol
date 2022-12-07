@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 import {Event} from "./Event.sol";
-import {Particle} from "./Particle.sol";
+import {Particle, IParticle} from "./Particle.sol";
 import {IKaleidor, Proposal} from "./interfaces/IKaleidor.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ClonesWithImmutableArgs} from "clones-with-immutable-args/ClonesWithImmutableArgs.sol";
@@ -10,7 +10,7 @@ import {ClonesWithImmutableArgs} from "clones-with-immutable-args/ClonesWithImmu
 contract Kaleidor is IKaleidor{
     using ClonesWithImmutableArgs for address;
 
-    Particle public immutable particle;
+    address public immutable particle;
     address public immutable eventImplementation;
 
     bytes32 public topProposal;
@@ -26,10 +26,12 @@ contract Kaleidor is IKaleidor{
         address _feeReceiver,
         uint256 _startTime
     ) {
-        particle = new Particle(
-            address(this),
-            _feeReceiver,
-            _startTime
+        particle = address(
+            new Particle(
+                address(this),
+                _feeReceiver,
+                _startTime
+            )
         );
         eventImplementation = address(new Event(particle));
         nextEvent = _startTime + 30 days;
@@ -49,7 +51,7 @@ contract Kaleidor is IKaleidor{
 
     function unvote(address _user) external {
         if(_user != msg.sender){
-            require(msg.sender == address(particle));
+            require(msg.sender == particle);
         }
 
         bytes32 prevVote = userVote[_user];
@@ -79,7 +81,7 @@ contract Kaleidor is IKaleidor{
     function _updateVotes(bytes32 _proposalHash) internal {
         require(_proposalHash != bytes32(0));
 
-        uint256 balance = particle.balanceOf(msg.sender);
+        uint256 balance = IParticle(particle).balance(msg.sender);
         if(balance == 0) revert NoTokens();
 
         bytes32 prevVote = userVote[msg.sender];

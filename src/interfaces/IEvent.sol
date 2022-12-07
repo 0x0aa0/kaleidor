@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {Particle} from "../Particle.sol";
-
 struct Solution{
     string title;
     string description;
@@ -16,7 +14,7 @@ interface IEvent {
     error TimeNotElapsed();
     error NotAuthorized();
 
-    function particle() external returns(Particle);
+    function particle() external returns(address);
 
     function kaleidor() external returns(address);
 

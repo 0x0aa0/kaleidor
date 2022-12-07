@@ -6,7 +6,7 @@ import {SVGUtil} from "./utils/SVGUtil.sol";
 import {LinearVRGDA} from "VRGDAs/LinearVRGDA.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
-import {IKaleidor, Kaleidor} from "./Kaleidor.sol";
+import {IKaleidor} from "./interfaces/IKaleidor.sol";
 import {IParticle} from "./interfaces/IParticle.sol";
 
 contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
@@ -76,6 +76,10 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
     function getImage(string calldata _signal) external view returns (string memory image){
         bytes32 seed = keccak256(abi.encodePacked(_signal));
         image = _image(seed);
+    }
+
+    function balance(address _user) external view returns(uint256){
+        return _balanceOf[_user];
     }
 
     function transferFrom(

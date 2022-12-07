@@ -10,6 +10,8 @@ interface IParticle {
     error NotAuthorized();
     error Locked();
 
+    function balance(address _user) external view returns(uint256);
+
     function kaleidor() external returns(address);
 
     function feeReceiver() external returns(address);
