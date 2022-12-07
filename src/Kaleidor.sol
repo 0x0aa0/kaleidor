@@ -46,7 +46,11 @@ contract Kaleidor is IKaleidor{
         _updateVotes(_proposalHash);
     }
 
-    function unvote() external {
+    function unvote(address _user) external {
+        if(_user != msg.sender){
+            require(msg.sender == address(particle));
+        }
+
         bytes32 prevVote = userVote[msg.sender];
 
         if(proposalVotes[prevVote] > 0){
@@ -54,7 +58,6 @@ contract Kaleidor is IKaleidor{
         }
 
         userVote[msg.sender] = bytes32(0);
-        particle.lock(msg.sender, false);
     }
 
     function execute() external returns (address newEvent) {
@@ -80,10 +83,6 @@ contract Kaleidor is IKaleidor{
         if (prevVote != bytes32(0) && proposalVotes[prevVote] > 0){
             proposalVotes[prevVote] -= balance;
         } 
-
-        if(!particle.locked(msg.sender)){
-            particle.lock(msg.sender, true);
-        }
 
         userVote[msg.sender] = _proposalHash;
         proposalVotes[_proposalHash] += balance;

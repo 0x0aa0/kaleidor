@@ -30,7 +30,7 @@ interface IEvent {
 
     function vote(bytes32 _solutionHash) external;
 
-    function unvote() external;
+    function unvote(address _user) external;
 
     function claim(bytes32 _solutionHash) external;
 

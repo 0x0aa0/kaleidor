@@ -19,7 +19,6 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
 
     mapping(uint256 => address) public discoverer;
     mapping(uint256 => string) public signals;
-    mapping(address => bool) public locked;
 
     constructor(
         address _kaleidor,
@@ -79,21 +78,12 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         image = _image(seed);
     }
 
-    function lock(address _user, bool _state) external {
-        if (
-            msg.sender != kaleidor && 
-            msg.sender != IKaleidor(kaleidor).currentEvent()
-        ) revert NotAuthorized();
-
-        locked[_user] = _state;
-    }
-
     function transferFrom(
         address from,
         address to,
         uint256 id
     ) public override {
-        if(locked[from]) revert Locked();
+        IKaleidor(kaleidor).unvote(from);
         super.transferFrom(from, to, id);
     }
 
@@ -102,7 +92,7 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         address to,
         uint256 id
     ) public override {
-        if(locked[from]) revert Locked();
+        IKaleidor(kaleidor).unvote(from);
         super.safeTransferFrom(from, to, id);
     }
 
@@ -112,7 +102,7 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         uint256 id,
         bytes calldata data
     ) public override {
-        if(locked[from]) revert Locked();
+        IKaleidor(kaleidor).unvote(from);
         super.safeTransferFrom(from, to, id, data);
     }
 }

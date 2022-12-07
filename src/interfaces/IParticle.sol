@@ -22,12 +22,9 @@ interface IParticle {
 
     function signals(uint256 _id) external returns(string memory);
 
-    function locked(address _user) external returns(bool);
-
     function mint(string calldata _signal) external payable;
 
     function getImage(string calldata _signal) external view returns (string memory);
 
-    function lock(address _user, bool _state) external;
 
 }

@@ -47,23 +47,24 @@ contract Event is IEvent, Clone{
             totalVotes += balance;
         }
 
-        if(!particle.locked(msg.sender)){
-            particle.lock(msg.sender, true);
-        }
-
         userVote[msg.sender] = _solutionHash;
         solutionVotes[_solutionHash] += balance;
     }
 
-    function unvote() external validTime {
+    function unvote(address _user) external validTime {
+        if(_user != msg.sender){
+            require(msg.sender == address(particle));
+        }
+        
         uint256 balance = particle.balanceOf(msg.sender);
         bytes32 prevVote = userVote[msg.sender];
 
-        solutionVotes[prevVote] -= balance;
-        totalVotes -= balance;
+        if(prevVote != bytes32(0)){
+            solutionVotes[prevVote] -= balance;
+            totalVotes -= balance;
 
-        userVote[msg.sender] = bytes32(0);
-        particle.lock(msg.sender, false);
+            userVote[msg.sender] = bytes32(0);
+        }
     }
 
     function claim(bytes32 _solutionHash) external {

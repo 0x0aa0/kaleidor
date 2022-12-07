@@ -34,7 +34,7 @@ interface IKaleidor {
 
     function vote(bytes32 _proposalHash) external;
 
-    function unvote() external;
+    function unvote(address _user) external;
 
     function execute() external returns(address newEvent);
     
