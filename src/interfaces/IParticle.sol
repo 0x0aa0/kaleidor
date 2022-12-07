@@ -26,5 +26,4 @@ interface IParticle {
 
     function getImage(string calldata _signal) external view returns (string memory);
 
-
 }

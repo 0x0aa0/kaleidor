@@ -37,6 +37,7 @@ contract Event is IEvent, Clone{
     }
 
     function vote(bytes32 _solutionHash) external validTime {
+        require(_solutionHash != bytes32(0));
         uint256 balance = particle.balanceOf(msg.sender);
         if(balance == 0) revert NoTokens();
 
@@ -56,14 +57,14 @@ contract Event is IEvent, Clone{
             require(msg.sender == address(particle));
         }
         
-        uint256 balance = particle.balanceOf(msg.sender);
-        bytes32 prevVote = userVote[msg.sender];
+        uint256 balance = particle.balanceOf(_user);
+        bytes32 prevVote = userVote[_user];
 
         if(prevVote != bytes32(0)){
             solutionVotes[prevVote] -= balance;
             totalVotes -= balance;
 
-            userVote[msg.sender] = bytes32(0);
+            userVote[_user] = bytes32(0);
         }
     }
 

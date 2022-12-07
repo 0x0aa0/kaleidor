@@ -51,10 +51,10 @@ contract Kaleidor is IKaleidor{
             require(msg.sender == address(particle));
         }
 
-        bytes32 prevVote = userVote[msg.sender];
+        bytes32 prevVote = userVote[_user];
 
         if(proposalVotes[prevVote] > 0){
-            proposalVotes[prevVote] -= particle.balanceOf(msg.sender);
+            proposalVotes[prevVote] -= particle.balanceOf(_user);
         }
 
         userVote[msg.sender] = bytes32(0);
@@ -76,6 +76,7 @@ contract Kaleidor is IKaleidor{
     }
 
     function _updateVotes(bytes32 _proposalHash) internal {
+        require(_proposalHash != bytes32(0));
         uint256 balance = particle.balanceOf(msg.sender);
         if(balance == 0) revert NoTokens();
 
