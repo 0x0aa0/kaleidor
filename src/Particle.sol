@@ -32,7 +32,7 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
         LinearVRGDA(
             1e18,
             0.5e18,
-            1e18
+            25e18
         ) 
     {
         kaleidor = _kaleidor;
