@@ -15,6 +15,7 @@ contract Event is IEvent, Clone{
 
     mapping(bytes32 => Solution) public solutions;
     mapping(address => bytes32) public userVote;
+    mapping(address => uint256) public lastVote;
     mapping(bytes32 => uint256) public solutionVotes;
 
     modifier validTime(){
@@ -38,18 +39,20 @@ contract Event is IEvent, Clone{
 
     function vote(bytes32 _solutionHash) external validTime {
         require(_solutionHash != bytes32(0));
+
         uint256 balance = particle.balanceOf(msg.sender);
         if(balance == 0) revert NoTokens();
 
         bytes32 prevVote = userVote[msg.sender];
         if (prevVote != bytes32(0)){
-            solutionVotes[prevVote] -= balance;
+            solutionVotes[prevVote] -= lastVote[msg.sender];
         } else {
             totalVotes += balance;
         }
 
         userVote[msg.sender] = _solutionHash;
         solutionVotes[_solutionHash] += balance;
+        lastVote[msg.sender] = balance;
     }
 
     function unvote(address _user) external validTime {

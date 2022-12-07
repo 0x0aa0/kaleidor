@@ -19,6 +19,7 @@ contract Kaleidor is IKaleidor{
 
     mapping(bytes32 => Proposal) public proposals;
     mapping(address => bytes32) public userVote;
+    mapping(address => uint256) public lastVote;
     mapping(bytes32 => uint256) public proposalVotes;
 
     constructor(
@@ -77,16 +78,18 @@ contract Kaleidor is IKaleidor{
 
     function _updateVotes(bytes32 _proposalHash) internal {
         require(_proposalHash != bytes32(0));
+
         uint256 balance = particle.balanceOf(msg.sender);
         if(balance == 0) revert NoTokens();
 
         bytes32 prevVote = userVote[msg.sender];
         if (prevVote != bytes32(0) && proposalVotes[prevVote] > 0){
-            proposalVotes[prevVote] -= balance;
+            proposalVotes[prevVote] -= lastVote[msg.sender];
         } 
 
         userVote[msg.sender] = _proposalHash;
         proposalVotes[_proposalHash] += balance;
+        lastVote[msg.sender] = balance;
 
         if (proposalVotes[_proposalHash] > proposalVotes[topProposal]){
             topProposal = _proposalHash;
