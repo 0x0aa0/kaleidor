@@ -26,8 +26,6 @@ contract ParticleTest is Test{
 
         vm.label(alice, "ALICE");
         vm.label(bob, "BOB");
-
-        vm.warp(block.timestamp + 1);
     }
 
     function xtestPricing() public {

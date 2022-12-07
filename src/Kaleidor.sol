@@ -3,15 +3,9 @@ pragma solidity 0.8.15;
 
 import {Event} from "./Event.sol";
 import {Particle} from "./Particle.sol";
-import {IKaleidor} from "./interfaces/IKaleidor.sol";
+import {IKaleidor, Proposal} from "./interfaces/IKaleidor.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ClonesWithImmutableArgs} from "clones-with-immutable-args/ClonesWithImmutableArgs.sol";
-
-struct Proposal{
-    string title;
-    string description;
-    uint256 amount;
-}
 
 contract Kaleidor is IKaleidor{
     using ClonesWithImmutableArgs for address;
@@ -23,9 +17,9 @@ contract Kaleidor is IKaleidor{
     uint256 public nextEvent;
     address public currentEvent;
 
-    mapping(bytes32 => Proposal) proposals;
-    mapping(address => bytes32) userVote;
-    mapping(bytes32 => uint256) proposalVotes;
+    mapping(bytes32 => Proposal) public proposals;
+    mapping(address => bytes32) public userVote;
+    mapping(bytes32 => uint256) public proposalVotes;
 
     constructor(
         address _feeReceiver,
@@ -64,7 +58,7 @@ contract Kaleidor is IKaleidor{
     }
 
     function execute() external returns (address newEvent) {
-        require(block.timestamp > nextEvent);
+        if(block.timestamp < nextEvent) revert TimeNotElapsed();
 
         uint256 amount = proposals[topProposal].amount;
 
@@ -80,7 +74,7 @@ contract Kaleidor is IKaleidor{
 
     function _updateVotes(bytes32 _proposalHash) internal {
         uint256 balance = particle.balanceOf(msg.sender);
-        require(balance > 0, "NO TOKENS");
+        if(balance == 0) revert NoTokens();
 
         bytes32 prevVote = userVote[msg.sender];
         if (prevVote != bytes32(0) && proposalVotes[prevVote] > 0){

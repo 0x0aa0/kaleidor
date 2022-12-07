@@ -7,8 +7,9 @@ import {LinearVRGDA} from "VRGDAs/LinearVRGDA.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 import {IKaleidor, Kaleidor} from "./Kaleidor.sol";
+import {IParticle} from "./interfaces/IParticle.sol";
 
-contract Particle is ERC721, SVGUtil, LinearVRGDA {
+contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
 
     address public immutable kaleidor;
     address public immutable feeReceiver;
@@ -41,10 +42,10 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
     }
 
     function mint(string calldata _signal) external payable {
-        require(block.timestamp > startTime, "NOT STARTED"); 
+        if(block.timestamp < startTime) revert NotStarted(); 
 
         uint256 id = uint256(keccak256(abi.encodePacked(_signal)));
-        require(discoverer[id] == address(0), "ALREADY DISCOVERED");
+        if(discoverer[id] != address(0)) revert AlreadyDiscovered();
 
         uint256 price = getVRGDAPrice(
             toDaysWadUnsafe(
@@ -52,7 +53,7 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
             ), 
             totalSold++
         );
-        require(msg.value >= price, "UNDERPAID"); 
+        if(msg.value < price) revert Underpaid(); 
         
 
         discoverer[id] = msg.sender;
@@ -68,7 +69,7 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
     }
 
     function tokenURI(uint256 id) public view override returns(string memory){
-        require(discoverer[id] != address(0), "NOT DISCOVERED");
+        if(discoverer[id] == address(0)) revert NotDiscovered();
         string memory signal =  signals[id];
         return _manifest(id, discoverer[id], signal);
     }
@@ -79,7 +80,11 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
     }
 
     function lock(address _user, bool _state) external {
-        require(msg.sender == kaleidor || msg.sender == IKaleidor(kaleidor).currentEvent());
+        if (
+            msg.sender != kaleidor && 
+            msg.sender != IKaleidor(kaleidor).currentEvent()
+        ) revert NotAuthorized();
+
         locked[_user] = _state;
     }
 
@@ -88,7 +93,7 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
         address to,
         uint256 id
     ) public override {
-        require(!locked[from]);
+        if(locked[from]) revert Locked();
         super.transferFrom(from, to, id);
     }
 
@@ -97,7 +102,7 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
         address to,
         uint256 id
     ) public override {
-        require(!locked[from]);
+        if(locked[from]) revert Locked();
         super.safeTransferFrom(from, to, id);
     }
 
@@ -107,7 +112,7 @@ contract Particle is ERC721, SVGUtil, LinearVRGDA {
         uint256 id,
         bytes calldata data
     ) public override {
-        require(!locked[from]);
+        if(locked[from]) revert Locked();
         super.safeTransferFrom(from, to, id, data);
     }
 }

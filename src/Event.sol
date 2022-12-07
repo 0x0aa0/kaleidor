@@ -5,25 +5,20 @@ import {Clone} from "clones-with-immutable-args/Clone.sol";
 import {Particle} from "./Particle.sol";
 import {Proposal} from "./Kaleidor.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {IEvent, Solution} from "./interfaces/IEvent.sol";
 
-struct Solution{
-    string title;
-    string description;
-    address participant;
-}
-
-contract Event is Clone{
+contract Event is IEvent, Clone{
     Particle public immutable particle;
     address public immutable kaleidor;
 
     uint256 public totalVotes;
 
-    mapping(bytes32 => Solution) solutions;
-    mapping(address => bytes32) userVote;
-    mapping(bytes32 => uint256) solutionVotes;
+    mapping(bytes32 => Solution) public solutions;
+    mapping(address => bytes32) public userVote;
+    mapping(bytes32 => uint256) public solutionVotes;
 
     modifier validTime(){
-        require(block.timestamp < _getArgUint256(0));
+        if(block.timestamp > _getArgUint256(0)) revert EventEnded();
         _;
     }
     
@@ -36,14 +31,14 @@ contract Event is Clone{
         kaleidor = msg.sender;
     }
 
-    function create(Solution memory _solution) external validTime {
+    function create(Solution calldata _solution) external validTime {
         bytes32 _solutionHash = keccak256(abi.encode(_solution));
         solutions[_solutionHash] = _solution;
     }
 
     function vote(bytes32 _solutionHash) external validTime {
         uint256 balance = particle.balanceOf(msg.sender);
-        require(balance > 0);
+        if(balance == 0) revert NoTokens();
 
         bytes32 prevVote = userVote[msg.sender];
         if (prevVote != bytes32(0)){
@@ -72,9 +67,9 @@ contract Event is Clone{
     }
 
     function claim(bytes32 _solutionHash) external {
-        require(block.timestamp > _getArgUint256(0));
+        if(block.timestamp < _getArgUint256(0)) revert TimeNotElapsed();
         Solution memory solution = solutions[_solutionHash];
-        require(msg.sender == solution.participant);
+        if(msg.sender != solution.participant) revert NotAuthorized();
 
         uint256 amount = solutionVotes[_solutionHash] * (address(this).balance / totalVotes);
         SafeTransferLib.safeTransferETH(msg.sender, amount);
