@@ -55,7 +55,7 @@ contract Kaleidor is IKaleidor{
         bytes32 prevVote = userVote[_user];
 
         if(proposalVotes[prevVote] > 0){
-            proposalVotes[prevVote] -= particle.balanceOf(_user);
+            proposalVotes[prevVote] -= lastVote[_user];
         }
 
         userVote[msg.sender] = bytes32(0);

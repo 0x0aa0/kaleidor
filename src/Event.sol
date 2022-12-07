@@ -60,12 +60,11 @@ contract Event is IEvent, Clone{
             require(msg.sender == address(particle));
         }
         
-        uint256 balance = particle.balanceOf(_user);
         bytes32 prevVote = userVote[_user];
 
         if(prevVote != bytes32(0)){
-            solutionVotes[prevVote] -= balance;
-            totalVotes -= balance;
+            solutionVotes[prevVote] -= lastVote[_user];
+            totalVotes -= lastVote[_user];
 
             userVote[_user] = bytes32(0);
         }
