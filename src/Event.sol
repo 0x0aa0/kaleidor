@@ -2,10 +2,10 @@
 pragma solidity 0.8.15;
 
 import {Clone} from "clones-with-immutable-args/Clone.sol";
-import {IParticle} from "./interfaces/IParticle.sol";
 import {Proposal} from "./Kaleidor.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {IParticle} from "./interfaces/IParticle.sol";
 import {IEvent, Solution} from "./interfaces/IEvent.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 contract Event is IEvent, Clone{
     address public immutable particle;
@@ -14,9 +14,10 @@ contract Event is IEvent, Clone{
     uint256 public totalVotes;
 
     mapping(bytes32 => Solution) public solutions;
+    mapping(bytes32 => uint256) public solutionVotes;
+
     mapping(address => bytes32) public userVote;
     mapping(address => uint256) public lastVote;
-    mapping(bytes32 => uint256) public solutionVotes;
 
     modifier validTime(){
         if(block.timestamp > _getArgUint256(0)) revert EventEnded();
@@ -56,18 +57,13 @@ contract Event is IEvent, Clone{
     }
 
     function unvote(address _user) external validTime {
-        if(_user != msg.sender){
-            require(msg.sender == particle);
-        }
+        if(_user != msg.sender || msg.sender != particle) revert NotAuthorized();
         
         bytes32 prevVote = userVote[_user];
 
-        if(prevVote != bytes32(0)){
-            solutionVotes[prevVote] -= lastVote[_user];
-            totalVotes -= lastVote[_user];
-
-            userVote[_user] = bytes32(0);
-        }
+        solutionVotes[prevVote] -= lastVote[_user];
+        totalVotes -= lastVote[_user];
+        userVote[_user] = bytes32(0);
     }
 
     function claim(bytes32 _solutionHash) external {

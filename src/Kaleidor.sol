@@ -2,9 +2,9 @@
 pragma solidity 0.8.15;
 
 import {Event} from "./Event.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Particle, IParticle} from "./Particle.sol";
 import {IKaleidor, Proposal} from "./interfaces/IKaleidor.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ClonesWithImmutableArgs} from "clones-with-immutable-args/ClonesWithImmutableArgs.sol";
 
 contract Kaleidor is IKaleidor{
@@ -18,10 +18,12 @@ contract Kaleidor is IKaleidor{
     address public currentEvent;
 
     mapping(bytes32 => Proposal) public proposals;
+    mapping(bytes32 => uint256) public proposalVotes;
+    mapping(bytes32 => bool) public executed;
+
     mapping(address => bytes32) public userVote;
     mapping(address => uint256) public lastVote;
-    mapping(bytes32 => uint256) public proposalVotes;
-
+    
     constructor(
         address _feeReceiver,
         uint256 _startTime
@@ -50,13 +52,11 @@ contract Kaleidor is IKaleidor{
     }
 
     function unvote(address _user) external {
-        if(_user != msg.sender){
-            require(msg.sender == particle);
-        }
+        if(_user != msg.sender || msg.sender != particle) revert NotAuthorized();
 
         bytes32 prevVote = userVote[_user];
 
-        if(proposalVotes[prevVote] > 0){
+        if(prevVote != bytes32(0) && !executed[prevVote]){
             proposalVotes[prevVote] -= lastVote[_user];
         }
 
@@ -66,12 +66,12 @@ contract Kaleidor is IKaleidor{
     function execute() external returns (address newEvent) {
         if(block.timestamp < nextEvent) revert TimeNotElapsed();
 
-        uint256 amount = proposals[topProposal].amount;
-
         nextEvent = block.timestamp + 30 days;
         newEvent = eventImplementation.clone(abi.encode(nextEvent));
 
+        uint256 amount = proposals[topProposal].amount;
         proposalVotes[topProposal] = 0;
+        executed[topProposal] == true;
         topProposal = bytes32(0);
         currentEvent = newEvent;
 
@@ -79,19 +79,19 @@ contract Kaleidor is IKaleidor{
     }
 
     function _updateVotes(bytes32 _proposalHash) internal {
-        require(_proposalHash != bytes32(0));
+        if(_proposalHash == bytes32(0) || executed[_proposalHash]) revert InvalidProposal();
 
         uint256 balance = IParticle(particle).balance(msg.sender);
         if(balance == 0) revert NoTokens();
 
         bytes32 prevVote = userVote[msg.sender];
-        if (prevVote != bytes32(0) && proposalVotes[prevVote] > 0){
+        if (prevVote != bytes32(0) && !executed[prevVote]){
             proposalVotes[prevVote] -= lastVote[msg.sender];
         } 
 
         userVote[msg.sender] = _proposalHash;
-        proposalVotes[_proposalHash] += balance;
         lastVote[msg.sender] = balance;
+        proposalVotes[_proposalHash] += balance;
 
         if (proposalVotes[_proposalHash] > proposalVotes[topProposal]){
             topProposal = _proposalHash;

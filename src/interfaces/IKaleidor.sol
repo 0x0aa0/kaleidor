@@ -11,6 +11,8 @@ interface IKaleidor {
 
     error TimeNotElapsed();
     error NoTokens();
+    error InvalidProposal();
+    error NotAuthorized();
 
     function particle() external returns(address);
 

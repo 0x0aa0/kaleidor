@@ -4,10 +4,13 @@ pragma solidity 0.8.15;
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {SVGUtil} from "./utils/SVGUtil.sol";
 import {LinearVRGDA} from "VRGDAs/LinearVRGDA.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
-import {IKaleidor} from "./interfaces/IKaleidor.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+
 import {IParticle} from "./interfaces/IParticle.sol";
+import {IKaleidor} from "./interfaces/IKaleidor.sol";
+import {IEvent} from "./interfaces/IEvent.sol";
+
 
 contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
 
@@ -87,7 +90,7 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         address to,
         uint256 id
     ) public override {
-        IKaleidor(kaleidor).unvote(from);
+        _unvote(from);
         super.transferFrom(from, to, id);
     }
 
@@ -96,7 +99,7 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         address to,
         uint256 id
     ) public override {
-        IKaleidor(kaleidor).unvote(from);
+        _unvote(from);
         super.safeTransferFrom(from, to, id);
     }
 
@@ -106,7 +109,13 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         uint256 id,
         bytes calldata data
     ) public override {
-        IKaleidor(kaleidor).unvote(from);
+        _unvote(from);
         super.safeTransferFrom(from, to, id, data);
+    }
+
+    function _unvote(address _from) internal {
+        IKaleidor(kaleidor).unvote(_from);
+        address currentEvent = IKaleidor(kaleidor).currentEvent();
+        IEvent(currentEvent).unvote(_from);
     }
 }
