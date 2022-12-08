@@ -52,7 +52,9 @@ contract Kaleidor is IKaleidor{
     }
 
     function unvote(address _user) external {
-        if(_user != msg.sender || msg.sender != particle) revert NotAuthorized();
+        if(_user != msg.sender){
+            if(msg.sender != particle) revert NotAuthorized();
+        } 
 
         bytes32 prevVote = userVote[_user];
 
@@ -60,7 +62,7 @@ contract Kaleidor is IKaleidor{
             proposalVotes[prevVote] -= lastVote[_user];
         }
 
-        userVote[msg.sender] = bytes32(0);
+        userVote[_user] = bytes32(0);
     }
 
     function execute() external returns (address newEvent) {
@@ -70,12 +72,17 @@ contract Kaleidor is IKaleidor{
         newEvent = eventImplementation.clone(abi.encode(nextEvent));
 
         uint256 amount = proposals[topProposal].amount;
+        
         proposalVotes[topProposal] = 0;
-        executed[topProposal] == true;
+        executed[topProposal] = true;
         topProposal = bytes32(0);
         currentEvent = newEvent;
 
         SafeTransferLib.safeTransferETH(newEvent, amount);
+    }
+
+    function updateTop(bytes32 _proposalHash) external {
+        _updateTop(_proposalHash);
     }
 
     function _updateVotes(bytes32 _proposalHash) internal {
@@ -93,6 +100,10 @@ contract Kaleidor is IKaleidor{
         lastVote[msg.sender] = balance;
         proposalVotes[_proposalHash] += balance;
 
+        _updateTop(_proposalHash);
+    }
+
+    function _updateTop(bytes32 _proposalHash) internal {
         if (proposalVotes[_proposalHash] > proposalVotes[topProposal]){
             topProposal = _proposalHash;
         }

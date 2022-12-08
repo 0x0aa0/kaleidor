@@ -24,7 +24,7 @@ interface IParticle {
 
     function signals(uint256 _id) external returns(string memory);
 
-    function mint(string calldata _signal) external payable;
+    function mint(string calldata _signal) external payable returns(uint256);
 
     function getImage(string calldata _signal) external view returns (string memory);
 

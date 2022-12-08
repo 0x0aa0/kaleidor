@@ -57,7 +57,9 @@ contract Event is IEvent, Clone{
     }
 
     function unvote(address _user) external validTime {
-        if(_user != msg.sender || msg.sender != particle) revert NotAuthorized();
+        if(_user != msg.sender){
+            if(msg.sender != particle) revert NotAuthorized();
+        } 
         
         bytes32 prevVote = userVote[_user];
 

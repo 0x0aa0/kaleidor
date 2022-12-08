@@ -43,10 +43,10 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         startTime = _startTime;
     }
 
-    function mint(string calldata _signal) external payable {
+    function mint(string calldata _signal) external payable returns(uint256 id){
         if(block.timestamp < startTime) revert NotStarted(); 
 
-        uint256 id = uint256(keccak256(abi.encodePacked(_signal)));
+        id = uint256(keccak256(abi.encodePacked(_signal)));
         if(discoverer[id] != address(0)) revert AlreadyDiscovered();
 
         uint256 price = getVRGDAPrice(
@@ -116,6 +116,8 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
     function _unvote(address _from) internal {
         IKaleidor(kaleidor).unvote(_from);
         address currentEvent = IKaleidor(kaleidor).currentEvent();
-        IEvent(currentEvent).unvote(_from);
+        if(currentEvent != address(0)){
+            IEvent(currentEvent).unvote(_from);
+        }  
     }
 }
