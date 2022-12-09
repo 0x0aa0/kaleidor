@@ -24,7 +24,7 @@ interface IKaleidor {
 
     function currentEvent() external returns(address);
 
-    function proposals(bytes32 _proposalHash) external returns(string memory, string memory, uint256);
+    function proposals(bytes32 _proposalHash) external view returns(string memory, string memory, uint256);
 
     function userVote(address _user) external returns(bytes32);
 

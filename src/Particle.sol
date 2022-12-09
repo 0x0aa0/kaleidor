@@ -119,7 +119,10 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         }
 
         address currentEvent = IKaleidor(kaleidor).currentEvent();
-        if(currentEvent != address(0)){
+        if(
+            currentEvent != address(0) && 
+            IEvent(currentEvent).userVote(_from) != bytes32(0)
+        ){
             IEvent(currentEvent).transferUnvote(_from);
         }  
     }

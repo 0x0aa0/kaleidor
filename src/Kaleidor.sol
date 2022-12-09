@@ -10,6 +10,8 @@ import {ClonesWithImmutableArgs} from "clones-with-immutable-args/ClonesWithImmu
 contract Kaleidor is IKaleidor{
     using ClonesWithImmutableArgs for address;
 
+    uint256 public immutable CADENCE = 30 days;
+
     address public immutable particle;
     address public immutable eventImplementation;
 
@@ -36,7 +38,7 @@ contract Kaleidor is IKaleidor{
             )
         );
         eventImplementation = address(new Event(particle));
-        nextEvent = _startTime + 30 days;
+        nextEvent = _startTime + CADENCE;
     }
 
     receive() external payable {}
@@ -75,11 +77,17 @@ contract Kaleidor is IKaleidor{
     function execute() external returns (address newEvent) {
         if(block.timestamp < nextEvent) revert TimeNotElapsed();
 
-        nextEvent = block.timestamp + 30 days;
-        newEvent = eventImplementation.clone(abi.encode(nextEvent));
-
+        nextEvent = block.timestamp + CADENCE;
         uint256 amount = proposals[topProposal].amount;
-        
+
+        newEvent = eventImplementation.clone(
+            abi.encodePacked(
+                nextEvent, 
+                amount, 
+                uint256(topProposal)
+            )
+        );
+
         proposalVotes[topProposal] = 0;
         executed[topProposal] = true;
         topProposal = bytes32(0);

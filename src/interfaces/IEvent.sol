@@ -39,4 +39,8 @@ interface IEvent {
 
     function endTime() external view returns(uint256);
 
+    function eventPayout() external pure returns(uint256);
+
+    function eventInfo() external view returns(string memory, string memory);
+
 }

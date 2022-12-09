@@ -216,6 +216,25 @@ contract KaleidorTest is Test{
         kaleidor.execute();
     }
 
+    function testEventImplementation() public {
+        address implementation = kaleidor.eventImplementation();
+        assertEq(IEvent(implementation).endTime(), 0);
+    }
+
+    function testEventSanity() public {
+        _executeProposal(alice);
+
+        assertEq(currentEvent.particle(), address(particle));
+        assertEq(currentEvent.kaleidor(), address(kaleidor));
+
+        assertEq(currentEvent.endTime(), block.timestamp + 30 days);
+        assertEq(currentEvent.eventPayout(), 1 ether);
+
+        (string memory title, string memory description) = currentEvent.eventInfo();
+        assertEq(title, "TEST");
+        assertEq(description, "TEST");
+    }
+
     function testEventValidTime() public {
         _executeProposal(alice);
         assertEq(currentEvent.endTime(), block.timestamp + 30 days);
@@ -240,16 +259,129 @@ contract KaleidorTest is Test{
         assertEq(participant, bob);
     }
 
-    function xtestEventVote() public {
+    function testEventVote() public {
         _executeProposal(alice);
         bytes32 _solutionHash = _createSolution(bob);
-        _voteProposal(alice, _solutionHash);
+        _voteSolution(alice, _solutionHash);
 
         assertEq(currentEvent.solutionVotes(_solutionHash), 1);
         assertEq(currentEvent.userVote(alice), _solutionHash);
         assertEq(currentEvent.totalVotes(), 1);  
     }
 
+    function testEventVoteInvalidSolution() public {
+        _executeProposal(alice);
+        vm.expectRevert(abi.encodeWithSelector(IEvent.InvalidSolution.selector));
+        _voteSolution(alice, bytes32(0));
+    }
+
+    function testEventVoteNoTokens() public {
+        _executeProposal(alice);
+        bytes32 _solutionHash = _createSolution(bob);
+        vm.expectRevert(abi.encodeWithSelector(IEvent.NoTokens.selector));
+        _voteSolution(bob, _solutionHash);
+    }
+
+    function testEventChangeVote() public {
+        _executeProposal(alice);
+
+        bytes32 alice_solutionHash = _createSolution(alice);
+        _voteSolution(alice, alice_solutionHash);
+
+        _mintToken(bob, "1");
+        bytes32 bob_solutionHash = _createSolution(bob);
+        _voteSolution(bob, bob_solutionHash);
+
+        _voteSolution(alice, bob_solutionHash);
+
+        assertEq(currentEvent.solutionVotes(bob_solutionHash), 2);
+        assertEq(currentEvent.solutionVotes(alice_solutionHash), 0);
+        assertEq(currentEvent.userVote(alice), bob_solutionHash);
+        assertEq(currentEvent.userVote(bob), bob_solutionHash);
+        assertEq(currentEvent.totalVotes(), 2);
+    }
+
+    function testEventTransfer() public {
+        _executeProposal(alice);
+        uint256 id = _mintToken(alice, "1");
+        vm.prank(alice);
+        particle.transferFrom(alice, bob, id);
+    }
+
+    function testEventTransferVote() public {
+        _executeProposal(alice);
+        uint256 id = _mintToken(alice, "1");
+        bytes32 _solutionHash = _createSolution(alice);
+        _voteSolution(alice, _solutionHash);
+
+        assertEq(currentEvent.userVote(alice), _solutionHash);
+        assertEq(currentEvent.solutionVotes(_solutionHash), 2);
+        assertEq(currentEvent.lastVote(alice),  2);
+        assertEq(currentEvent.totalVotes(),  2);
+
+        vm.prank(alice);
+        particle.transferFrom(alice, bob, id);
+
+        assertEq(currentEvent.userVote(alice), _solutionHash);
+        assertEq(currentEvent.solutionVotes(_solutionHash), 1);
+        assertEq(currentEvent.lastVote(alice),  1);
+        assertEq(currentEvent.totalVotes(),  1);
+    }
+
+    function testEventUnvote() public {
+        _executeProposal(alice);
+        bytes32 _solutionHash = _createSolution(alice);
+        _voteSolution(alice, _solutionHash);
+
+        _unvoteSolution(alice);
+
+        assertEq(currentEvent.solutionVotes(_solutionHash), 0);
+        assertEq(currentEvent.userVote(alice), bytes32(0));
+        assertEq(currentEvent.totalVotes(), 0);
+    }
+
+    function testEventClaim() public {
+        _executeProposal(alice);
+
+        bytes32 alice_solutionHash = _createSolution(alice);
+        _voteSolution(alice, alice_solutionHash);
+
+        _mintToken(bob, "1");
+        bytes32 bob_solutionHash = _createSolution(bob);
+        _voteSolution(bob, bob_solutionHash);
+
+        vm.warp(block.timestamp + 30 days);
+
+        uint256 aliceBal = alice.balance;
+        uint256 bobBal = bob.balance;
+
+        _claimSolution(alice, alice_solutionHash);
+        _claimSolution(bob, bob_solutionHash);
+
+        assertEq(aliceBal + 0.5 ether, alice.balance);
+        assertEq(bobBal + 0.5 ether, bob.balance);
+    }
+
+    function testEventClaimTimeNotElapsed() public {
+        _executeProposal(alice);
+
+        vm.warp(block.timestamp + 30 days - 1);
+
+        vm.expectRevert(abi.encodeWithSelector(IEvent.TimeNotElapsed.selector));      
+        _claimSolution(alice, keccak256(""));
+    }
+
+    function testEventClaimNotAuthorized() public {
+        _executeProposal(alice);
+
+        bytes32 _solutionHash = _createSolution(alice);
+        _voteSolution(alice, _solutionHash);
+
+        vm.warp(block.timestamp + 30 days);
+
+        vm.expectRevert(abi.encodeWithSelector(IEvent.NotAuthorized.selector));      
+        _claimSolution(bob, _solutionHash);
+    }
 
     function _mintToken(address _user, string memory _signal) internal returns(uint256 id) {
         uint256 price = _getPrice();
@@ -287,6 +419,11 @@ contract KaleidorTest is Test{
     function _unvoteSolution(address _user) internal {
         vm.prank(_user);
         currentEvent.unvote();
+    }
+
+    function _claimSolution(address _user, bytes32 _solutionHash) internal {
+        vm.prank(_user);
+        currentEvent.claim(_solutionHash);
     }
 
     function _executeProposal(address _user) internal returns(bytes32 _proposalHash, address newEvent){
