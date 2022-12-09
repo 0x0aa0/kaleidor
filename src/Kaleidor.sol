@@ -51,18 +51,25 @@ contract Kaleidor is IKaleidor{
         _updateVotes(_proposalHash);
     }
 
-    function unvote(address _user) external {
-        if(_user != msg.sender){
-            if(msg.sender != particle) revert NotAuthorized();
-        } 
-
-        bytes32 prevVote = userVote[_user];
+    function unvote() external {
+        bytes32 prevVote = userVote[msg.sender];
 
         if(prevVote != bytes32(0) && !executed[prevVote]){
-            proposalVotes[prevVote] -= lastVote[_user];
+            proposalVotes[prevVote] -= lastVote[msg.sender];
         }
 
-        userVote[_user] = bytes32(0);
+        userVote[msg.sender] = bytes32(0);
+    }
+
+    function transferUnvote(address _user) external {
+        if(msg.sender != particle) revert NotAuthorized();
+
+        bytes32 currentVote = userVote[_user];
+
+        if(!executed[currentVote]){
+            --proposalVotes[currentVote];
+            --lastVote[_user];
+        }
     }
 
     function execute() external returns (address newEvent) {

@@ -4,13 +4,17 @@ pragma solidity 0.8.15;
 import "forge-std/Test.sol";
 import {Particle} from "../src/Particle.sol";
 import {Proposal, Kaleidor, IKaleidor} from "../src/Kaleidor.sol";
-import {Event} from "../src/Event.sol";
+import {Event, IEvent, Solution} from "../src/Event.sol";
 import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 import {IParticle} from "../src/interfaces/IParticle.sol";
+import {Strings}from "../src/utils/Strings.sol";
 
 contract KaleidorTest is Test{
+    using Strings for uint256;
+
     Kaleidor kaleidor;
     Particle particle;
+    Event currentEvent;
 
     address feeReceiver = vm.addr(111);
     address alice = vm.addr(222);
@@ -143,9 +147,9 @@ contract KaleidorTest is Test{
 
 
         assertEq(kaleidor.proposalVotes(_proposalHash), 1);
-
         assertEq(kaleidor.userVote(alice), _proposalHash);
-        assertEq(kaleidor.userVote(bob), bytes32(0));
+        assertEq(kaleidor.userVote(bob),  _proposalHash);
+        assertEq(kaleidor.lastVote(bob),  0);
     }
 
     function testVoteSurpass() public {
@@ -171,10 +175,26 @@ contract KaleidorTest is Test{
         assertEq(kaleidor.userVote(alice), bytes32(0));
     }
 
-    function testUnvoteNotAuthorized() public {
-        vm.prank(bob);
+    function testTransferUnvote() public {
+        _mintToken(alice, "1");
+        uint256 id = _mintToken(alice, "2");
+        bytes32 _proposalHash = _createProposal(alice);
+
+        assertEq(kaleidor.userVote(alice), _proposalHash);
+        assertEq(kaleidor.proposalVotes(_proposalHash), 2);
+        assertEq(kaleidor.lastVote(alice), 2);
+
+        vm.prank(alice);
+        particle.transferFrom(alice, bob, id);
+
+        assertEq(kaleidor.userVote(alice), _proposalHash);
+        assertEq(kaleidor.proposalVotes(_proposalHash), 1);
+        assertEq(kaleidor.lastVote(alice), 1);
+    }
+
+    function testTrasnferUnvoteNotAuthorized() public {
         vm.expectRevert(abi.encodeWithSelector(IKaleidor.NotAuthorized.selector));
-        kaleidor.unvote(alice);
+        kaleidor.transferUnvote(alice);
     }
 
     function testExecute() public {
@@ -190,11 +210,46 @@ contract KaleidorTest is Test{
     function testExecuteTimeNotElapsed() public {
         _mintToken(alice, "1");
         vm.deal(address(kaleidor), 1 ether);
-        bytes32 _proposalHash = _createProposal(alice);
+        _createProposal(alice);
         vm.warp(block.timestamp + 30 days - 1);
         vm.expectRevert(abi.encodeWithSelector(IKaleidor.TimeNotElapsed.selector));
         kaleidor.execute();
     }
+
+    function testEventValidTime() public {
+        _executeProposal(alice);
+        assertEq(currentEvent.endTime(), block.timestamp + 30 days);
+
+        vm.warp(block.timestamp + 30 days + 1);
+
+        vm.expectRevert(abi.encodeWithSelector(IEvent.EventEnded.selector));
+        _createSolution(bob);
+        vm.expectRevert(abi.encodeWithSelector(IEvent.EventEnded.selector));
+        _voteSolution(bob, keccak256(""));
+        vm.expectRevert(abi.encodeWithSelector(IEvent.EventEnded.selector));
+        _unvoteSolution(bob);
+    }
+
+    function testEventCreate() public {
+        _executeProposal(alice);
+        bytes32 _solutionHash = _createSolution(bob);
+
+        (string memory title, string memory description, address participant) = currentEvent.solutions(_solutionHash);
+        assertEq(title, "TEST");
+        assertEq(description, "TEST");
+        assertEq(participant, bob);
+    }
+
+    function xtestEventVote() public {
+        _executeProposal(alice);
+        bytes32 _solutionHash = _createSolution(bob);
+        _voteProposal(alice, _solutionHash);
+
+        assertEq(currentEvent.solutionVotes(_solutionHash), 1);
+        assertEq(currentEvent.userVote(alice), _solutionHash);
+        assertEq(currentEvent.totalVotes(), 1);  
+    }
+
 
     function _mintToken(address _user, string memory _signal) internal returns(uint256 id) {
         uint256 price = _getPrice();
@@ -215,7 +270,23 @@ contract KaleidorTest is Test{
 
     function _unvoteProposal(address _user) internal {
         vm.prank(_user);
-        kaleidor.unvote(_user);
+        kaleidor.unvote();
+    }
+
+    function _createSolution(address _user) internal returns(bytes32 _solutionHash) {
+        Solution memory sol = Solution("TEST", "TEST", _user);
+        vm.prank(_user);
+        _solutionHash = currentEvent.create(sol);
+    }
+
+    function _voteSolution(address _user, bytes32 _solutionHash) internal {
+        vm.prank(_user);
+        currentEvent.vote(_solutionHash);
+    }
+
+    function _unvoteSolution(address _user) internal {
+        vm.prank(_user);
+        currentEvent.unvote();
     }
 
     function _executeProposal(address _user) internal returns(bytes32 _proposalHash, address newEvent){
@@ -224,6 +295,7 @@ contract KaleidorTest is Test{
         _proposalHash = _createProposal(_user);
         vm.warp(block.timestamp + 30 days);
         newEvent = kaleidor.execute();
+        currentEvent = Event(payable(newEvent));
     }
 
     function _getPrice() internal view returns(uint256 price){
@@ -235,4 +307,10 @@ contract KaleidorTest is Test{
         );
     }
  
+    function xtestTenImages() public view {
+        uint256 start = 1000;
+        for(uint256 i = start; i < start + 10; i++){
+            console2.log("<img src='", particle.getImage(i.toString()), "'></img>");
+        }
+    }
 }

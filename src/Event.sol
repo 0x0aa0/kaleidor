@@ -19,7 +19,7 @@ contract Event is IEvent, Clone{
     mapping(address => bytes32) public userVote;
     mapping(address => uint256) public lastVote;
 
-    modifier validTime(){
+    modifier validTime() {
         if(block.timestamp > _getArgUint256(0)) revert EventEnded();
         _;
     }
@@ -33,22 +33,22 @@ contract Event is IEvent, Clone{
         kaleidor = msg.sender;
     }
 
-    function create(Solution calldata _solution) external validTime {
-        bytes32 _solutionHash = keccak256(abi.encode(_solution));
+    function create(Solution calldata _solution) external validTime returns(bytes32 _solutionHash){
+        _solutionHash = keccak256(abi.encode(_solution, msg.sender));
         solutions[_solutionHash] = _solution;
     }
 
     function vote(bytes32 _solutionHash) external validTime {
-        require(_solutionHash != bytes32(0));
+        if(_solutionHash == bytes32(0)) revert InvalidSolution();
 
         uint256 balance = IParticle(particle).balance(msg.sender);
         if(balance == 0) revert NoTokens();
 
         bytes32 prevVote = userVote[msg.sender];
-        if (prevVote != bytes32(0)){
-            solutionVotes[prevVote] -= lastVote[msg.sender];
-        } else {
+        if (prevVote == bytes32(0)){
             totalVotes += balance;
+        } else {
+            solutionVotes[prevVote] -= lastVote[msg.sender];
         }
 
         userVote[msg.sender] = _solutionHash;
@@ -56,16 +56,21 @@ contract Event is IEvent, Clone{
         lastVote[msg.sender] = balance;
     }
 
-    function unvote(address _user) external validTime {
-        if(_user != msg.sender){
-            if(msg.sender != particle) revert NotAuthorized();
-        } 
-        
-        bytes32 prevVote = userVote[_user];
+    function unvote() external validTime {  
+        bytes32 prevVote = userVote[msg.sender];
 
-        solutionVotes[prevVote] -= lastVote[_user];
-        totalVotes -= lastVote[_user];
-        userVote[_user] = bytes32(0);
+        solutionVotes[prevVote] -= lastVote[msg.sender];
+        totalVotes -= lastVote[msg.sender];
+        userVote[msg.sender] = bytes32(0);
+    }
+
+    function transferUnvote(address _user) external validTime {
+        if(msg.sender != particle) revert NotAuthorized();
+        
+        bytes32 currentVote = userVote[_user];
+
+        --solutionVotes[currentVote];
+        --totalVotes;
     }
 
     function claim(bytes32 _solutionHash) external {
@@ -75,5 +80,9 @@ contract Event is IEvent, Clone{
 
         uint256 amount = solutionVotes[_solutionHash] * (address(this).balance / totalVotes);
         SafeTransferLib.safeTransferETH(msg.sender, amount);
+    }
+
+    function endTime() external pure returns(uint256){
+        return _getArgUint256(0);
     }
 }

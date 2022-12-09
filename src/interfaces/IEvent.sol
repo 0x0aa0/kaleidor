@@ -13,6 +13,7 @@ interface IEvent {
     error NoTokens();
     error TimeNotElapsed();
     error NotAuthorized();
+    error InvalidSolution();
 
     function particle() external returns(address);
 
@@ -24,12 +25,18 @@ interface IEvent {
 
     function solutionVotes(bytes32 _solutionHash) external returns(uint256);
 
-    function create(Solution calldata _solution) external;
+    function totalVotes() external returns(uint256);
+
+    function create(Solution calldata _solution) external returns(bytes32);
 
     function vote(bytes32 _solutionHash) external;
 
-    function unvote(address _user) external;
+    function unvote() external;
+
+    function transferUnvote(address _user) external;
 
     function claim(bytes32 _solutionHash) external;
+
+    function endTime() external view returns(uint256);
 
 }
