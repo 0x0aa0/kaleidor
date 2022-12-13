@@ -55,7 +55,7 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
             ), 
             totalSold++
         );
-        if(msg.value < price) revert Underpaid(); 
+        //if(msg.value < price) revert Underpaid(); 
         
 
         discoverer[id] = msg.sender;

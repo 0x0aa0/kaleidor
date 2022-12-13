@@ -443,6 +443,10 @@ contract KaleidorTest is Test{
             particle.totalSold()
         );
     }
+
+    function xtestImage() public view {
+        console2.log(particle.getImage("Kaleidor"));
+    }
  
     function xtestTenImages() public view {
         uint256 start = 1000;

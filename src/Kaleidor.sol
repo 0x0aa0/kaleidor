@@ -10,7 +10,7 @@ import {ClonesWithImmutableArgs} from "clones-with-immutable-args/ClonesWithImmu
 contract Kaleidor is IKaleidor{
     using ClonesWithImmutableArgs for address;
 
-    uint256 public immutable CADENCE = 30 days;
+    uint256 public immutable CADENCE = 5 minutes;
 
     address public immutable particle;
     address public immutable eventImplementation;
