@@ -52,7 +52,7 @@ contract Event is IEvent, Clone{
 
     /// @notice Creates a solution to the event
     /// @param _solution Details of the proposed solution
-    /// @return The keccak256 hash of the proposed solution
+    /// @return _solutionHash bytes32 of the proposed solution
     function create(Solution calldata _solution) external validTime returns(bytes32 _solutionHash){
         _solutionHash = keccak256(abi.encode(_solution, msg.sender));
         solutions[_solutionHash] = _solution;
@@ -123,7 +123,7 @@ contract Event is IEvent, Clone{
     }
 
     /// @notice Returns the title and description of the Event
-    /// @return The title and description of the Event
+    /// @return title and description of the Event
     function eventInfo() external view returns(string memory title, string memory description){
         bytes32 proposalHash = bytes32(_getArgUint256(64));
         (title, description, ) = IKaleidor(kaleidor).proposals(proposalHash);

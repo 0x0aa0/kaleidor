@@ -56,9 +56,9 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         startTime = _startTime;
     }
 
-    /// @notice Create a new particle
+    /// @notice Create a new particle and returns id
     /// @param _signal The signal of the particle
-    /// @return The token id of the newly created particle
+    /// @return id of the newly created particle
     function mint(string calldata _signal) external payable returns(uint256 id){
         if(block.timestamp < startTime) revert NotStarted(); 
 
@@ -94,9 +94,9 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         return _manifest(id, discoverer[id], signal);
     }
 
-    /// @notice Get the image of a particle
+    /// @notice Get the image of a particle and returns image as string
     /// @param _signal The signal of the particle
-    /// @return The image of the particle
+    /// @return image of the particle
     function getImage(string calldata _signal) external view returns (string memory image){
         bytes32 seed = keccak256(abi.encodePacked(_signal));
         image = _image(seed);

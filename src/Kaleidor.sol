@@ -65,9 +65,9 @@ contract Kaleidor is IKaleidor{
     /// @dev Override of the default fallback function
     receive() external payable {}
 
-    /// @notice Create a new proposal
+    /// @notice Create a new proposal and returns _proposalHash
     /// @param _proposal The proposal
-    /// @return The proposal hash
+    /// @return _proposalHash
     function create(Proposal memory _proposal) external returns(bytes32 _proposalHash) {
         _proposalHash = keccak256(abi.encode(_proposal, msg.sender));
         proposals[_proposalHash] = _proposal;
@@ -104,8 +104,8 @@ contract Kaleidor is IKaleidor{
         }
     }
 
-    /// @notice Execute the top proposal
-    /// @return The address of the new Event
+    /// @notice Execute the top proposal and returns newEvent
+    /// @return newEvent address
     function execute() external returns (address newEvent) {
         if(block.timestamp < nextEvent) revert TimeNotElapsed();
 
