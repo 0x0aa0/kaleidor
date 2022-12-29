@@ -14,15 +14,28 @@ import {IEvent} from "./interfaces/IEvent.sol";
 
 contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
 
+    /// @dev kaleidor address
     address public immutable kaleidor;
+
+    /// @dev Fee Receiver address
     address public immutable feeReceiver;
+
+    ///  @dev Start Time
     uint256 public immutable startTime;
     
+    /// @dev Total sold
     uint256 public totalSold;
 
+    /// @dev Map of discoverers
     mapping(uint256 => address) public discoverer;
+
+    /// @dev Map of signals
     mapping(uint256 => string) public signals;
 
+    /// @dev Constructor for the Particle contract
+    /// @param _kaleidor The address of the Kaleidor contract
+    /// @param _feeReceiver The address of the contract that will receive the fees from the sale
+    /// @param _startTime The start time of the sale in Unix Timestamp format
     constructor(
         address _kaleidor,
         address _feeReceiver,
@@ -43,6 +56,9 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         startTime = _startTime;
     }
 
+    /// @notice Create a new particle
+    /// @param _signal The signal of the particle
+    /// @return The token id of the newly created particle
     function mint(string calldata _signal) external payable returns(uint256 id){
         if(block.timestamp < startTime) revert NotStarted(); 
 
@@ -57,7 +73,6 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         );
         //if(msg.value < price) revert Underpaid(); 
         
-
         discoverer[id] = msg.sender;
         signals[id] = _signal;
         _mint(msg.sender, id);
@@ -70,21 +85,34 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         SafeTransferLib.safeTransferETH(kaleidor, contribution);
     }
 
+    /// @notice Get the token URI of a particle
+    /// @param id The token id of the particle
+    /// @return The token URI of the particle
     function tokenURI(uint256 id) public view override returns(string memory){
         if(discoverer[id] == address(0)) revert NotDiscovered();
         string memory signal =  signals[id];
         return _manifest(id, discoverer[id], signal);
     }
 
+    /// @notice Get the image of a particle
+    /// @param _signal The signal of the particle
+    /// @return The image of the particle
     function getImage(string calldata _signal) external view returns (string memory image){
         bytes32 seed = keccak256(abi.encodePacked(_signal));
         image = _image(seed);
     }
 
+    /// @notice Get the balance of a user
+    /// @param _user The address of the user
+    /// @return The current balance of the user
     function balance(address _user) external view returns(uint256){
         return _balanceOf[_user];
     }
 
+    /// @notice Transfer a particle from one user to another
+    /// @param from The address of the sender
+    /// @param to The address of the recipient
+    /// @param id The token id of the particle
     function transferFrom(
         address from,
         address to,
@@ -94,6 +122,10 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         super.transferFrom(from, to, id);
     }
 
+    /// @notice Safely transfer a particle from one user to another
+    /// @param from The address of the sender
+    /// @param to The address of the recipient
+    /// @param id The token id of the particle
     function safeTransferFrom(
         address from,
         address to,
@@ -103,6 +135,11 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         super.safeTransferFrom(from, to, id);
     }
 
+    /// @notice Safely transfer a particle from one user to another with additional data
+    /// @param from The address of the sender
+    /// @param to The address of the recipient
+    /// @param id The token id of the particle
+    /// @param data Additional data to be included in the transfer
     function safeTransferFrom(
         address from,
         address to,
@@ -113,6 +150,8 @@ contract Particle is IParticle, ERC721, SVGUtil, LinearVRGDA {
         super.safeTransferFrom(from, to, id, data);
     }
 
+    /// @notice Unvote the user's Kaleidor and Event vote
+    /// @param _from Address of the user who is unvoting
     function _unvote(address _from) internal {
         if(IKaleidor(kaleidor).userVote(_from) != bytes32(0)){
             IKaleidor(kaleidor).transferUnvote(_from);
